@@ -330,6 +330,7 @@ public class Dron extends Thread{
         this.alg=1;
     }
     public void setMov(int mov){
+      
         switch(mov){
             case 1:
                 this.a=1;
@@ -360,5 +361,6 @@ public class Dron extends Thread{
         }
        // System.out.println("si cambie variables we");
     }
+    
     
 }

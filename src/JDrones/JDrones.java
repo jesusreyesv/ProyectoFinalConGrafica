@@ -343,7 +343,7 @@ public class JDrones extends javax.swing.JFrame {   //DECLARACIÓN DE VARIABLES 
             
                 if(!d.isAlive())
                 try{
-                    if(this.alg==2&&this.alg==6){
+                    if(this.alg==2){
                     d.setMov(mov);
                     }
                     d.start();
