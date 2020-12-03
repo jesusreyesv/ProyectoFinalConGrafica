@@ -3,6 +3,8 @@ import javax.swing.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.*; 
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Dron extends Thread{
     //DECLARACIÓN DE VARIABLES A UTILIZAR PARA DIBUJAR/SINCRONIZAR 
@@ -19,17 +21,19 @@ public class Dron extends Thread{
     private Coordenadas misCoordenadas;
     private String nombre;
     private int alg=0;
+    private CyclicBarrier cb;
     private RecursoCompartido rc;
     
     
     //DECLARACIÓN DEL CONSTRUCTOR QUE SE UTILIZARÁ
-    Dron(String n,MiX x, MiY y, DibujaDrones panel,int LY,int ly,int LX,int lx,Lock mutex,int algoritmo, RecursoCompartido rc){
+    Dron(String n,MiX x, MiY y, DibujaDrones panel,int LY,int ly,int LX,int lx,CyclicBarrier CB,int algoritmo, RecursoCompartido rc){
         setVariables(x,y,panel,LY,ly,LX,lx);  //(AHORRO DE ESPACIO) FUNCIÓN QUE ASIGNA LAS VARIABLES 
         this.sem= new Semaphore(1);           //INICIALIZACIÓN DEL SEMÁFORO
         this.mutex =new ReentrantLock();      //INICIALIZACIÓN DEL MUTEX
         this.tipoSinc=algoritmo;              //AQUÍ SE ASIGNA EL TIPO DE SINCRONIZACIÓN ESCOGIDO POR EL USUARIO
         this.nombre=n;
         this.rc=rc;
+        this.cb=CB;
     }
    
     
@@ -209,9 +213,54 @@ public class Dron extends Thread{
               
                
                
-               case 6:        //BARRIERS
-           
+               case 6:     
+               
+                   try {
+                       cb.await();
+                   } catch (InterruptedException ex) {
+                       Logger.getLogger(Dron.class.getName()).log(Level.SEVERE, null, ex);
+                   } catch (BrokenBarrierException ex) {
+                       Logger.getLogger(Dron.class.getName()).log(Level.SEVERE, null, ex);
+                   }
+               
+                  //SECCIÓN CRÍTICA 
+                   synchronized(rc){
+                  rc.setValoresRC(this.x.getMiX(),this.y.getMiY() );
+                  rc.operaX(a);
+                  rc.operaY(b);
+                  this.x.setMiX(rc.getRCMiX().getMiX());
+                  this.y.setMiY(rc.getRCMiY().getMiY());
+                  
+                  }
+                   try{Thread.sleep((int)(Math.random()*10));}catch(InterruptedException e){}
+                  panel.repaint();    //MAPEO DEL PANEL PARA MOSTRAR EL MOVIMIENTO
+                  
+                 
+                 
+                  
+                 
+                if (getY().getMiY() >= LimMaxY)
+                    b = -b;
+                if (getY().getMiY() <= LimMinY)
+                    b=-b;
+                if (getX().getMiX() >= LimMaxX)
+                    a = -a;
+                if (getX().getMiX() <= LimMinX)
+                    a = -a;
+                if(flag>=0){
+                    flag--;
+                }else{
+                    if(alg!=2){
+                    guardarCoordenadas();
+                    flag=5;
+                    }
+                }
+//              if(this.cb.getNumberWaiting()==Integer.parseInt(this.nombre)){
+//                  
+//              }
            break; 
+ 
+ 
            }
            
            

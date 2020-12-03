@@ -11,6 +11,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 
 import java.awt.Color;
+import java.util.concurrent.CyclicBarrier;
 
 
 import org.jfree.chart.ChartFactory;
@@ -33,7 +34,7 @@ public class JDrones extends javax.swing.JFrame {   //DECLARACIÓN DE VARIABLES 
     private RecursoCompartido RC;
     private Mapeo mapeo;
     private int mov=1;
-    
+    private CyclicBarrier CB,cfinal;           //BARRIER PARA SINCRONIZACIÓN POR BARRIERS
     private NumDron n;                  //Contador que nos dice cuantos drones se deben dibujar (se utilizará en JFreeChart
     private BufferedImage ima;          //Imagen que se proyectará en el panel 
     private double[] datosX;            //variables que se usarán para la graficación de JFreeChart
@@ -45,6 +46,7 @@ public class JDrones extends javax.swing.JFrame {   //DECLARACIÓN DE VARIABLES 
    
     
     public JDrones(int algoritmo) {
+        
         this.RC=new RecursoCompartido();
         this.setExtendedState(JFrame.MAXIMIZED_BOTH);
         initComponents(); //Inicialización de componentes
@@ -84,7 +86,8 @@ public class JDrones extends javax.swing.JFrame {   //DECLARACIÓN DE VARIABLES 
         panel= new DibujaDrones(ima);
         panel.setBounds(0, 0, 1200, 700); //Se le setean las medidas al panel
         add(panel); //Se agrega el panel a nuestro frame
-        veces=1; //Se le setea un 1 a nuestra variable veces debido a que inicialmente se dibujará un solo frame
+        veces=1; //Se le setea un 1 a nuestra variable veces debido a que inicialmente se dibujará un solo dron
+       
         s=new ReentrantLock();  //inicialización del mutex
     }
     @SuppressWarnings("unchecked")
@@ -103,7 +106,6 @@ public class JDrones extends javax.swing.JFrame {   //DECLARACIÓN DE VARIABLES 
         jMenuItem6 = new javax.swing.JMenuItem();
         jMenuItem5 = new javax.swing.JMenuItem();
         jMenuItem4 = new javax.swing.JMenuItem();
-        jMenuItem3 = new javax.swing.JMenuItem();
         jMenuItem2 = new javax.swing.JMenuItem();
 
         jMenu3.setText("jMenu3");
@@ -170,15 +172,7 @@ public class JDrones extends javax.swing.JFrame {   //DECLARACIÓN DE VARIABLES 
         });
         jMenu5.add(jMenuItem4);
 
-        jMenuItem3.setText("Monitores");
-        jMenuItem3.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jMenuItem3ActionPerformed(evt);
-            }
-        });
-        jMenu5.add(jMenuItem3);
-
-        jMenuItem2.setText("Barriers");
+        jMenuItem2.setText("BARRIER+MONITOR");
         jMenuItem2.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jMenuItem2ActionPerformed(evt);
@@ -215,6 +209,8 @@ public class JDrones extends javax.swing.JFrame {   //DECLARACIÓN DE VARIABLES 
     }//GEN-LAST:event_jMenuItem1ActionPerformed
 
     private void jMenuItemNuevoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItemNuevoActionPerformed
+       this.CB=new CyclicBarrier(1);
+        
         drones.clear();   //SE LIMPIAN LOS DRONES PARA RESETEARLE LAS POSICIONES
         //System.out.println("Valor de veces: "+veces); 
         if(veces==1){    //DEPENDE DE EL NÚMERO DE VECES QUE SE HAYA PRESIONADO EL BOTÓN VECES, ES EL NÚMERO DE DRONES QUE SE MANEJARÁN
@@ -222,7 +218,7 @@ public class JDrones extends javax.swing.JFrame {   //DECLARACIÓN DE VARIABLES 
         x = new MiX(1);  //ASIGNACIÓN DE LAS VARIABLES DEL PRIMER DRON
         y = new MiY(1);
         n = new NumDron(); //SE CREA EL PRIMER DRON EN LA VARIABLE N (TEMPORAL)
-        drones.add(new Dron("1",x,y,panel,700,0,1200,0,s,this.alg,RC)); //SE AGREGA AL ARREGLO DRON
+        drones.add(new Dron("1",x,y,panel,700,0,1200,0,CB,this.alg,RC)); //SE AGREGA AL ARREGLO DRON
         numDrones += 1; //SE AUMENTA EL NÚMERO DE DRONES A DIBUJAR
         panel.setN(numDrones); //SE LE PASA AL PANEL CUANTOS DRONES TIENE QUE DIBUJAR
         panel.CreaCirculo();  //SE CREA UN CIRCULO DENTRO DEL ARREGLO DE CIRCULOS DEL DRON, 1 DRON CORRESPONDE A 1 CIRCULO.
@@ -252,9 +248,9 @@ public class JDrones extends javax.swing.JFrame {   //DECLARACIÓN DE VARIABLES 
             
             switch(veces){   //SWITCH QUE SETEARÁ LOS N DRONES (SIEMPRE PARES)
                 case 2:
-                    
-                    drones.add(new Dron("1",new MiX(1),new MiY(1),panel,700,0,600,0,s,this.alg,RC));        //DRON 1 
-                    drones.add(new Dron("2",new MiX(601),new MiY(1),panel,700,0,1200,600,s,this.alg,RC));   //DRON 2
+                    this.CB=new CyclicBarrier(2);
+                    drones.add(new Dron("1",new MiX(1),new MiY(1),panel,700,0,600,0,CB,this.alg,RC));        //DRON 1 
+                    drones.add(new Dron("2",new MiX(601),new MiY(1),panel,700,0,1200,600,CB,this.alg,RC));   //DRON 2
                     numDrones =2;  //SE SETEA EL NUMERO DE DRONES A 2
                     panel.setN(numDrones);  //SE ACTUALIZA AL DIBUJADRONES CUANTOS DRONES DIBUJARÁ
                     panel.setNVeces(2);    //SE ACTUALIZA EL NÚMERO DE VECES QUE SE PRESIONÓ EL BOTÓN
@@ -264,10 +260,11 @@ public class JDrones extends javax.swing.JFrame {   //DECLARACIÓN DE VARIABLES 
                     break;
                     
                 case 4:
-                    drones.add(new Dron("1",new MiX(1),new MiY(1),panel,350,0,600,0,s,this.alg,RC));           //DRON 1 
-                    drones.add(new Dron("2",new MiX(1),new MiY(351),panel,700,350,600,0,s,this.alg,RC));//DRON 2
-                    drones.add(new Dron("3",new MiX(601),new MiY(1),panel,350,0,1200,600,s,this.alg,RC));//DRON 3
-                    drones.add(new Dron("4",new MiX(601),new MiY(351),panel,700,350,1200,600,s,this.alg,RC));//DRON 4
+                    this.CB=new CyclicBarrier(4);
+                    drones.add(new Dron("1",new MiX(1),new MiY(1),panel,350,0,600,0,CB,this.alg,RC));           //DRON 1 
+                    drones.add(new Dron("2",new MiX(1),new MiY(351),panel,700,350,600,0,CB,this.alg,RC));//DRON 2
+                    drones.add(new Dron("3",new MiX(601),new MiY(1),panel,350,0,1200,600,CB,this.alg,RC));//DRON 3
+                    drones.add(new Dron("4",new MiX(601),new MiY(351),panel,700,350,1200,600,CB,this.alg,RC));//DRON 4
                     numDrones =4;   //SE SETEA EL NUMERO DE DRONES A 4
                     panel.setN(numDrones); //SE ACTUALIZA AL DIBUJADRONES CUANTOS DRONES DIBUJARÁ
                     panel.setNVeces(4);  //SE ACTUALIZA EL NÚMERO DE VECES QUE SE PRESIONÓ EL BOTÓN
@@ -278,12 +275,13 @@ public class JDrones extends javax.swing.JFrame {   //DECLARACIÓN DE VARIABLES 
                     break;
                     
                 case 6:
-                    drones.add(new Dron("1",new MiX(1),new MiY(1),panel,233,0,600,0,s,this.alg,RC));
-                    drones.add(new Dron("2",new MiX(1),new MiY(234),panel,466,233,600,0,s,this.alg,RC));
-                    drones.add(new Dron("3",new MiX(1),new MiY(467),panel,700,466,600,0,s,this.alg,RC));
-                    drones.add(new Dron("4",new MiX(601),new MiY(1),panel,233,0,1200,600,s,this.alg,RC));
-                    drones.add(new Dron("5",new MiX(601),new MiY(234),panel,466,233,1200,600,s,this.alg,RC));
-                    drones.add(new Dron("6",new MiX(601),new MiY(467),panel,700,466,1200,600,s,this.alg,RC));
+                    this.CB=new CyclicBarrier(6);
+                    drones.add(new Dron("1",new MiX(1),new MiY(1),panel,233,0,600,0,CB,this.alg,RC));
+                    drones.add(new Dron("2",new MiX(1),new MiY(234),panel,466,233,600,0,CB,this.alg,RC));
+                    drones.add(new Dron("3",new MiX(1),new MiY(467),panel,700,466,600,0,CB,this.alg,RC));
+                    drones.add(new Dron("4",new MiX(601),new MiY(1),panel,233,0,1200,600,CB,this.alg,RC));
+                    drones.add(new Dron("5",new MiX(601),new MiY(234),panel,466,233,1200,600,CB,this.alg,RC));
+                    drones.add(new Dron("6",new MiX(601),new MiY(467),panel,700,466,1200,600,CB,this.alg,RC));
                     
                     numDrones =6 ; //SE SETEA EL NUMERO DE DRONES A 6 
                     panel.setN(numDrones); //SE ACTUALIZA AL DIBUJADRONES CUANTOS DRONES DIBUJARÁ
@@ -295,14 +293,15 @@ public class JDrones extends javax.swing.JFrame {   //DECLARACIÓN DE VARIABLES 
                     break;
                     
                 case 8:
-                    drones.add(new Dron("1",new MiX(1),new MiY(1),panel, 175,0,600,0 ,s,this.alg,RC ));
-                    drones.add(new Dron("2",new MiX(1),new MiY(176),panel, 350,175,600,0 ,s,this.alg,RC));
-                    drones.add(new Dron("3",new MiX(1),new MiY(351),panel, 525,350,600,0 ,s,this.alg,RC));
-                    drones.add(new Dron("4",new MiX(1),new MiY(526),panel, 700,525,600,0,s,this.alg,RC));
-                    drones.add(new Dron("5",new MiX(601),new MiY(1),panel, 175,0,1200,600,s,this.alg,RC));
-                    drones.add(new Dron("6",new MiX(601),new MiY(176),panel, 350,175,1200,600 ,s ,this.alg,RC));
-                    drones.add(new Dron("7",new MiX(601),new MiY(351),panel, 525,350,1200,600,s ,this.alg,RC));
-                    drones.add(new Dron("8",new MiX(601),new MiY(526),panel, 700,525,1200,600 ,s ,this.alg,RC));
+                   this.CB=new CyclicBarrier(8);
+                    drones.add(new Dron("1",new MiX(1),new MiY(1),panel, 175,0,600,0 ,CB,this.alg,RC ));
+                    drones.add(new Dron("2",new MiX(1),new MiY(176),panel, 350,175,600,0 ,CB,this.alg,RC));
+                    drones.add(new Dron("3",new MiX(1),new MiY(351),panel, 525,350,600,0 ,CB,this.alg,RC));
+                    drones.add(new Dron("4",new MiX(1),new MiY(526),panel, 700,525,600,0,CB,this.alg,RC));
+                    drones.add(new Dron("5",new MiX(601),new MiY(1),panel, 175,0,1200,600,CB,this.alg,RC));
+                    drones.add(new Dron("6",new MiX(601),new MiY(176),panel, 350,175,1200,600 ,CB ,this.alg,RC));
+                    drones.add(new Dron("7",new MiX(601),new MiY(351),panel, 525,350,1200,600,CB ,this.alg,RC));
+                    drones.add(new Dron("8",new MiX(601),new MiY(526),panel, 700,525,1200,600 ,CB ,this.alg,RC));
                     numDrones =8;  //SE SETEA EL NUMERO DE DRONES A 8
                     panel.setN(numDrones); //SE ACTUALIZA AL DIBUJADRONES CUANTOS DRONES DIBUJARÁ
                     panel.setNVeces(8);
@@ -313,16 +312,17 @@ public class JDrones extends javax.swing.JFrame {   //DECLARACIÓN DE VARIABLES 
                     break; 
                 
                 case 10:
-                    drones.add(new Dron("1",new MiX(1),new MiY(1),panel, 140,0,600,0,s ,this.alg,RC));
-                    drones.add(new Dron("2",new MiX(1),new MiY(141),panel, 280,140,600,0 ,s,this.alg,RC));
-                    drones.add(new Dron("3",new MiX(1),new MiY(281),panel, 420,280,600,0 ,s,this.alg,RC));
-                    drones.add(new Dron("4",new MiX(1),new MiY(421),panel, 560,420,600,0 ,s,this.alg,RC));
-                    drones.add(new Dron("5",new MiX(1),new MiY(561),panel, 700,560,600,0 ,s,this.alg,RC));
-                    drones.add(new Dron("6",new MiX(601),new MiY(1),panel, 140,0,1200,600 ,s,this.alg,RC));
-                    drones.add(new Dron("7",new MiX(601),new MiY(141),panel, 280,140,1200,600,s,this.alg,RC ));
-                    drones.add(new Dron("8",new MiX(601),new MiY(281),panel, 420,280,1200,600,s ,this.alg,RC));
-                    drones.add(new Dron("9",new MiX(601),new MiY(421),panel, 560,420,1200,600 ,s,this.alg,RC));
-                    drones.add(new Dron("10",new MiX(601),new MiY(561),panel, 700,560,1200,600,s ,this.alg,RC));
+                    this.CB=new CyclicBarrier(10);
+                    drones.add(new Dron("1",new MiX(1),new MiY(1),panel, 140,0,600,0,CB,this.alg,RC));
+                    drones.add(new Dron("2",new MiX(1),new MiY(141),panel, 280,140,600,0 ,CB,this.alg,RC));
+                    drones.add(new Dron("3",new MiX(1),new MiY(281),panel, 420,280,600,0 ,CB,this.alg,RC));
+                    drones.add(new Dron("4",new MiX(1),new MiY(421),panel, 560,420,600,0 ,CB,this.alg,RC));
+                    drones.add(new Dron("5",new MiX(1),new MiY(561),panel, 700,560,600,0 ,CB,this.alg,RC));
+                    drones.add(new Dron("6",new MiX(601),new MiY(1),panel, 140,0,1200,600 ,CB,this.alg,RC));
+                    drones.add(new Dron("7",new MiX(601),new MiY(141),panel, 280,140,1200,600,CB,this.alg,RC ));
+                    drones.add(new Dron("8",new MiX(601),new MiY(281),panel, 420,280,1200,600,CB ,this.alg,RC));
+                    drones.add(new Dron("9",new MiX(601),new MiY(421),panel, 560,420,1200,600 ,CB,this.alg,RC));
+                    drones.add(new Dron("10",new MiX(601),new MiY(561),panel, 700,560,1200,600,CB ,this.alg,RC));
                     
                     
                     numDrones = 10; //SE SETEA EL NUMERO DE DRONES A 10
@@ -343,7 +343,7 @@ public class JDrones extends javax.swing.JFrame {   //DECLARACIÓN DE VARIABLES 
             
                 if(!d.isAlive())
                 try{
-                    if(this.alg==2){
+                    if(this.alg==2&&this.alg==6){
                     d.setMov(mov);
                     }
                     d.start();
@@ -383,17 +383,12 @@ public class JDrones extends javax.swing.JFrame {   //DECLARACIÓN DE VARIABLES 
         this.setVisible(false);
         new JDrones(2).setVisible(true);;
     }//GEN-LAST:event_jMenuItem4ActionPerformed
-   //SE SELECCIONA LA SINCRONIZACIÓN POR MONITORES 
-    private void jMenuItem3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem3ActionPerformed
-        drones.clear();
-        this.setVisible(false);
-        new JDrones(3).setVisible(true);;
-    }//GEN-LAST:event_jMenuItem3ActionPerformed
-   // SE SELECCIONA LA SINCRONIZACIÓN POR BARRIERS
+
+  // SE SELECCIONA LA SINCRONIZACIÓN POR BARRIERS
     private void jMenuItem2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem2ActionPerformed
         drones.clear();
         this.setVisible(false);
-        new JDrones(4).setVisible(true);;
+        new JDrones(6).setVisible(true);;
     }//GEN-LAST:event_jMenuItem2ActionPerformed
 
     private void botonGraficarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botonGraficarActionPerformed
@@ -516,7 +511,6 @@ public class JDrones extends javax.swing.JFrame {   //DECLARACIÓN DE VARIABLES 
     private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JMenuItem jMenuItem1;
     private javax.swing.JMenuItem jMenuItem2;
-    private javax.swing.JMenuItem jMenuItem3;
     private javax.swing.JMenuItem jMenuItem4;
     private javax.swing.JMenuItem jMenuItem5;
     private javax.swing.JMenuItem jMenuItem6;
